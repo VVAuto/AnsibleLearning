@@ -1,0 +1,32 @@
+---
+- name: Generate Snow API token
+  hosts: localhost
+  gather_facts: false
+  vars:
+    client_id: "your_client_id"
+    client_secret: "your_client_secret"
+    token_url: "https://your-snow-api.com/oauth/token"
+    token_payload:
+      grant_type: "client_credentials"
+      scope: "api"
+  tasks:
+    - name: Generate token
+      uri:
+        url: "{{ token_url }}"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          grant_type: "{{ token_payload.grant_type }}"
+          scope: "{{ token_payload.scope }}"
+        headers:
+          Content-Type: "application/x-www-form-urlencoded"
+        auth:
+          user: "{{ client_id }}"
+          password: "{{ client_secret }}"
+        validate_certs: false
+        return_content: yes
+      register: token_response
+
+    - name: Print token
+      debug:
+        var: token_response.json.access_token
