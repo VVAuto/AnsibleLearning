@@ -1,0 +1,57 @@
+---
+- name: Run PowerShell script from SharePoint
+  hosts: windows_host
+  gather_facts: False
+
+  vars:
+    site_url: "https://your-sharepoint-site-url"
+    script_path: "/sites/your-site/Shared%20Documents/your-script.ps1"
+    username: "your-username"
+    password: "your-password"
+
+  tasks:
+    - name: Authenticate and get access token
+      uri:
+        url: "{{ site_url }}/_forms/default.aspx?wa=wsignin1.0"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ username }}"
+          password: "{{ password }}"
+          submit: "Sign in"
+        return_content: yes
+      register: auth_response
+
+    - name: Extract access token from response
+      set_fact:
+        access_token: "{{ auth_response.cookies['FedAuth'] }}"
+
+    - name: Download PowerShell script from SharePoint
+      uri:
+        url: "{{ site_url }}{{ script_path }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+        return_content: yes
+      register: script_response
+
+    - name: Save the downloaded script
+      copy:
+        content: "{{ script_response.content }}"
+        dest: "/path/to/your-script.ps1"
+      delegate_to: localhost
+
+    - name: Run PowerShell script
+      win_shell: |
+        powershell.exe -ExecutionPolicy Bypass -File "C:/path/to/your-script.ps1"
+      register: script_output
+
+    - name: Print PowerShell script output
+      debug:
+        var: script_output.stdout_lines
+
+    - name: Remove the downloaded script
+      file:
+        path: "/path/to/your-script.ps1"
+        state: absent
+      delegate_to: localhost
