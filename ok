@@ -1,0 +1,52 @@
+---
+- name: Download file from SharePoint
+  hosts: localhost
+  gather_facts: False
+
+  vars:
+    site_url: "https://your-sharepoint-site-url"
+    file_path: "/sites/your-site/Shared%20Documents/your-file.txt"
+    username: "your-username"
+    password: "your-password"
+
+  tasks:
+    - name: Authenticate and get access token
+      uri:
+        url: "{{ site_url }}/_layouts/15/Authenticate.aspx?Source={{ site_url }}"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ username }}"
+          password: "{{ password }}"
+          AuthMethod: "FormsAuthentication"
+        return_content: yes
+      register: auth_response
+
+    - name: Extract access token from response
+      set_fact:
+        access_token: "{{ auth_response.cookies['FedAuth'] }}"
+
+    - name: Get file content URL
+      uri:
+        url: "{{ site_url }}/_api/web/getfilebyserverrelativeurl('{{ file_path }}')?$select=ServerRelativeUrl,ListItemAllFields/File/ServerRelativeUrl"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+          Accept: "application/json;odata=verbose"
+        return_content: yes
+      register: file_info
+
+    - name: Download file from SharePoint
+      uri:
+        url: "{{ site_url }}{{ file_info.json.d.ListItemAllFields.File.ServerRelativeUrl }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ access_token }}"
+        return_content: yes
+      register: file_response
+
+    - name: Save the downloaded file
+      copy:
+        content: "{{ file_response.content }}"
+        dest: "/path/to/your-file.txt"
+      delegate_to: localhost
