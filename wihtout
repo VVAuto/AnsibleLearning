@@ -1,0 +1,42 @@
+---
+- name: Run PowerShell script from SharePoint
+  hosts: windows_host
+  gather_facts: False
+
+  vars:
+    site_url: "https://your-sharepoint-site-url"
+    script_path: "/sites/your-site/Shared%20Documents/your-script.ps1"
+    username: "your-username"
+    password: "your-password"
+
+  tasks:
+    - name: Authenticate and get access token
+      uri:
+        url: "{{ site_url }}/_forms/default.aspx?wa=wsignin1.0"
+        method: POST
+        body_format: form-urlencoded
+        body:
+          username: "{{ username }}"
+          password: "{{ password }}"
+          submit: "Sign in"
+        return_content: yes
+      register: auth_response
+
+    - name: Extract access token from response
+      set_fact:
+        access_token: "{{ auth_response.cookies['FedAuth'] }}"
+
+    - name: Run PowerShell script from SharePoint
+      win_shell: |
+        $webClient = New-Object System.Net.WebClient
+        $webClient.Headers.Add("Authorization", "Bearer {{ access_token }}")
+        $scriptContent = $webClient.DownloadString("{{ site_url }}{{ script_path }}")
+        Invoke-Command -ScriptBlock { 
+          param($scriptContent)
+          Invoke-Expression $scriptContent 
+        } -ArgumentList $scriptContent
+      register: script_output
+
+    - name: Print PowerShell script output
+      debug:
+        var: script_output.stdout_lines
