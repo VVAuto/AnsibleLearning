@@ -1,0 +1,52 @@
+$excelFilePath = "C:\path\to\input.xlsx"
+$outputFilePath = "C:\path\to\output.xlsx"
+$columnIndex = 1
+$rowCountThreshold = 10
+
+# Load the Excel file
+$excel = New-Object -ComObject Excel.Application
+$workbook = $excel.Workbooks.Open($excelFilePath)
+$worksheet = $workbook.Sheets.Item(1)
+
+# Get the used range of the worksheet
+$usedRange = $worksheet.UsedRange
+
+# Get the total number of rows
+$totalRowCount = $usedRange.Rows.Count
+
+# Create a new Excel object for the output file
+$outputExcel = New-Object -ComObject Excel.Application
+$outputWorkbook = $outputExcel.Workbooks.Add()
+$outputWorksheet = $outputWorkbook.Sheets.Item(1)
+
+# Copy rows based on count in the first column
+$copyCount = 0
+for ($row = 1; $row -le $totalRowCount; $row++) {
+    $cellValue = $usedRange.Item($row, $columnIndex).Text
+
+    # Check if the count in the first column meets the threshold
+    if ([int]$cellValue -ge $rowCountThreshold) {
+        $copyCount++
+
+        # Copy the entire row to the output worksheet
+        $usedRange.Rows($row).Copy()
+        $outputWorksheet.Cells($copyCount, 1).PasteSpecial()
+
+        # Copy formatting if needed
+        $usedRange.Rows($row).Copy()
+        $outputWorksheet.Cells($copyCount, 1).PasteSpecial(-4163)
+    }
+}
+
+# Save and close the output file
+$outputWorkbook.SaveAs($outputFilePath)
+$outputWorkbook.Close()
+
+# Clean up the Excel objects
+$excel.Quit()
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($usedRange) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
+[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+[System.GC]::Collect()
+[System.GC]::WaitForPendingFinalizers()
