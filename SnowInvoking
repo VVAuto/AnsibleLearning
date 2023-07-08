@@ -18,3 +18,27 @@
     - name: Print Assigned Tickets
       debug:
         msg: "Assigned tickets: {{ assigned_tickets }}"
+
+
+
+---
+- name: Assign Tickets in Round Robin Fashion
+  hosts: localhost
+  gather_facts: false
+  vars:
+    team_members:
+      - Alice
+      - Bob
+      - Charlie
+      - Dave
+    last_assigned_member: "Alice"
+    tickets_to_assign: 3  # Number of tickets to assign for testing
+  tasks:
+    - name: Assign Tickets
+      set_fact:
+        assigned_tickets: "{{ team_members | cycle(last_assigned_member) | map('extract', [0, tickets_to_assign]) | list }}"
+      register: result
+
+    - name: Update last assigned member
+      set_fact:
+        last_assigned_member: "{{ assigned_tickets[-1] | default(last_assigned_member) }}"
