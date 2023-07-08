@@ -36,9 +36,20 @@
   tasks:
     - name: Assign Tickets
       set_fact:
-        assigned_tickets: "{{ team_members | cycle(last_assigned_member) | map('extract', [0, tickets_to_assign]) | list }}"
+        assigned_tickets: "{{ team_members | custom_cycle(last_assigned_member) | map('extract', [0, tickets_to_assign]) | list }}"
       register: result
 
     - name: Update last assigned member
       set_fact:
         last_assigned_member: "{{ assigned_tickets[-1] | default(last_assigned_member) }}"
+  filters:
+    - name: custom_cycle
+      module: inline
+      code: |
+        def custom_cycle(list_to_cycle, start_item=None):
+            if start_item is None:
+                start_item = list_to_cycle[0]
+            else:
+                index = list_to_cycle.index(start_item)
+                list_to_cycle = list_to_cycle[index:] + list_to_cycle[:index]
+            return list_to_cycle
