@@ -1,32 +1,20 @@
 ---
-- name: Generate Snow API token
+- name: Assign Tickets in Round Robin Fashion
   hosts: localhost
   gather_facts: false
   vars:
-    client_id: "your_client_id"
-    client_secret: "your_client_secret"
-    token_url: "https://your-snow-api.com/oauth/token"
-    token_payload:
-      grant_type: "client_credentials"
-      scope: "api"
+    team_members:
+      - Alice
+      - Bob
+      - Charlie
+      - Dave
+    last_assigned_member: "Alice"
   tasks:
-    - name: Generate token
-      uri:
-        url: "{{ token_url }}"
-        method: POST
-        body_format: form-urlencoded
-        body:
-          grant_type: "{{ token_payload.grant_type }}"
-          scope: "{{ token_payload.scope }}"
-        headers:
-          Content-Type: "application/x-www-form-urlencoded"
-        auth:
-          user: "{{ client_id }}"
-          password: "{{ client_secret }}"
-        validate_certs: false
-        return_content: yes
-      register: token_response
+    - name: Assign Tickets
+      set_fact:
+        assigned_tickets: "{{ team_members | map('extract', [team_members.index(last_assigned_member) | default(0) | int, team_members.index(last_assigned_member) | default(0) | int + 1]) | list }}"
+      register: result
 
-    - name: Print token
+    - name: Print Assigned Tickets
       debug:
-        var: token_response.json.access_token
+        msg: "Assigned tickets: {{ assigned_tickets }}"
