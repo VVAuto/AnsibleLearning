@@ -1,55 +1,22 @@
----
-- name: Assign Tickets in Round Robin Fashion
-  hosts: localhost
-  gather_facts: false
-  vars:
-    team_members:
-      - Alice
-      - Bob
-      - Charlie
-      - Dave
-    last_assigned_member: "Alice"
-  tasks:
-    - name: Assign Tickets
-      set_fact:
-        assigned_tickets: "{{ team_members | map('extract', [team_members.index(last_assigned_member) | default(0) | int, team_members.index(last_assigned_member) | default(0) | int + 1]) | list }}"
-      register: result
+# Replace these values with your remote Windows machine's information
+$remoteHost = "remote_host_name_or_ip"
+$remoteUsername = "your_username"
+$remotePassword = "your_password"
 
-    - name: Print Assigned Tickets
-      debug:
-        msg: "Assigned tickets: {{ assigned_tickets }}"
+# Create a PSCredential object for authentication
+$securePassword = ConvertTo-SecureString -AsPlainText $remotePassword -Force
+$cred = New-Object System.Management.Automation.PSCredential ($remoteUsername, $securePassword)
 
+# Create a new remote PowerShell session
+$session = New-PSSession -ComputerName $remoteHost -Credential $cred
 
+# Enter the remote session to execute commands
+Enter-PSSession $session
 
----
-- name: Assign Tickets in Round Robin Fashion
-  hosts: localhost
-  gather_facts: false
-  vars:
-    team_members:
-      - Alice
-      - Bob
-      - Charlie
-      - Dave
-    last_assigned_member: "Alice"
-    tickets_to_assign: 3  # Number of tickets to assign for testing
-  tasks:
-    - name: Assign Tickets
-      set_fact:
-        assigned_tickets: "{{ team_members | custom_cycle(last_assigned_member) | map('extract', [0, tickets_to_assign]) | list }}"
-      register: result
+# Now you are in the remote session and can run PowerShell commands on the remote machine
+# For example, run the Get-Process command:
+Get-Process
 
-    - name: Update last assigned member
-      set_fact:
-        last_assigned_member: "{{ assigned_tickets[-1] | default(last_assigned_member) }}"
-  filters:
-    - name: custom_cycle
-      module: inline
-      code: |
-        def custom_cycle(list_to_cycle, start_item=None):
-            if start_item is None:
-                start_item = list_to_cycle[0]
-            else:
-                index = list_to_cycle.index(start_item)
-                list_to_cycle = list_to_cycle[index:] + list_to_cycle[:index]
-            return list_to_cycle
+# To exit the remote session, use the Exit-PSSession cmdlet
+Exit-PSSession
+
