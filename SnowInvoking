@@ -1,3 +1,35 @@
+
+
+# Create an empty hash table to store the handover details
+$handoverDetails = @{}
+
+# Prompt user for ticket handover details
+do {
+    # Ask if there is any ticket to handover
+    $handoverChoice = Read-Host "Is there any ticket to handover? (yes/no)"
+
+    if ($handoverChoice -eq "yes") {
+        # Ask for the incident number
+        $incidentNumber = Read-Host "Enter the incident number:"
+
+        # Ask to whom it is being reassigned
+        $reassignTo = Read-Host "Enter the username to whom it is being reassigned:"
+
+        # Add the handover details to the hash table
+        $handoverDetails[$incidentNumber] = $reassignTo
+    }
+    elseif ($handoverChoice -ne "no") {
+        Write-Host "Invalid choice. Please enter 'yes' or 'no'."
+    }
+
+} while ($handoverChoice -ne "no")
+
+# Output the captured handover details
+Write-Host "Handover Details:"
+foreach ($incident in $handoverDetails.GetEnumerator()) {
+    Write-Host "Incident Number: $($incident.Key), Reassigned To: $($incident.Value)"
+}
+
 ---
 - name: Generate Snow API token
   hosts: localhost
