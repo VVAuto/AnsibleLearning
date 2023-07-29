@@ -1,6 +1,6 @@
 
 
-# Create an empty hash table to store the handover details
+# # Create an empty hash table to store the handover details
 $handoverDetails = @{}
 
 # Prompt user for ticket handover details
@@ -12,11 +12,25 @@ do {
         # Ask for the incident number
         $incidentNumber = Read-Host "Enter the incident number:"
 
+        # Ask for the person providing the handover
+        $handoverBy = Read-Host "Enter the username providing the handover:"
+
+        # Ask for the plan of action for the ticket
+        $planOfAction = Read-Host "Enter the plan of action for the ticket:"
+
         # Ask to whom it is being reassigned
         $reassignTo = Read-Host "Enter the username to whom it is being reassigned:"
 
-        # Add the handover details to the hash table
-        $handoverDetails[$incidentNumber] = $reassignTo
+        # Create an object to store all the handover details
+        $handoverObject = [PSCustomObject]@{
+            IncidentNumber = $incidentNumber
+            HandoverBy = $handoverBy
+            PlanOfAction = $planOfAction
+            ReassignTo = $reassignTo
+        }
+
+        # Add the handover details object to the hash table
+        $handoverDetails[$incidentNumber] = $handoverObject
     }
     elseif ($handoverChoice -ne "no") {
         Write-Host "Invalid choice. Please enter 'yes' or 'no'."
@@ -27,8 +41,13 @@ do {
 # Output the captured handover details
 Write-Host "Handover Details:"
 foreach ($incident in $handoverDetails.GetEnumerator()) {
-    Write-Host "Incident Number: $($incident.Key), Reassigned To: $($incident.Value)"
+    Write-Host "Incident Number: $($incident.Value.IncidentNumber)"
+    Write-Host "Handover By: $($incident.Value.HandoverBy)"
+    Write-Host "Plan of Action: $($incident.Value.PlanOfAction)"
+    Write-Host "Reassigned To: $($incident.Value.ReassignTo)"
+    Write-Host ""
 }
+
 
 ---
 - name: Generate Snow API token
