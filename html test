@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Major Incident Notifications</title>
+  <title>ications</title>
   <style>
     /* CSS styles for the table caption */
     caption {
@@ -13,27 +13,39 @@
       padding: 10px;
       caption-side: top;
     }
+    th, td {
+      padding: 8px;
+      text-align: left;
+    }
   </style>
 </head>
 <body>
   <table border="1" style="border-collapse: collapse; width: 100%;">
     <caption>Major Incident Notifications Table</caption>
+    <colgroup>
+      <col style="width: 30%;"> <!-- Adjust width of column 1 -->
+      <col style="width: 70%;"> <!-- Adjust width of column 2 -->
+    </colgroup>
     <thead>
       <tr>
-        <th style="padding: 8px; text-align: left;">Column 1 Header</th>
-        <th style="padding: 8px; text-align: left;">Column 2 Header</th>
+        <th>Column 1 Header</th>
+        <th>Column 2 Header</th>
       </tr>
     </thead>
     <tbody>
-      <tr style="font-size: 14px;">
-        <td style="padding: 8px; color: #ff6347;">Row 1 Data 1</td>
-        <td style="padding: 8px;">Row 1 Data 2</td>
+      <tr>
+        <td>Header 1</td>
+        <td>Value 1</td>
       </tr>
-      <tr style="font-size: 14px;">
-        <td style="padding: 8px; color: #32cd32;">Row 2 Data 1</td>
-        <td style="padding: 8px;">Row 2 Data 2</td>
+      <tr>
+        <td>Header 2</td>
+        <td>Value 2</td>
       </tr>
-      <!-- Add more rows and data here -->
+      <tr>
+        <td>Header 3</td>
+        <td>Value 3</td>
+      </tr>
+      <!-- Add more rows here -->
     </tbody>
   </table>
 </body>
