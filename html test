@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>ications</title>
+  <title>Major Incident Notifications</title>
   <style>
     /* CSS styles for the table caption */
     caption {
@@ -12,8 +12,13 @@
       color: white;
       padding: 10px;
       caption-side: top;
+      text-align: left; /* Align the caption text to the left */
     }
-    th, td {
+    th {
+      padding: 8px;
+      text-align: left;
+    }
+    td {
       padding: 8px;
       text-align: left;
     }
@@ -34,18 +39,19 @@
     </thead>
     <tbody>
       <tr>
-        <td>Header 1</td>
-        <td>Value 1</td>
+        <td style="background-color: #cce6ff; font-size: 14px; font-family: 'Arial', sans-serif; color: #333;">Value 1</td>
+        <td style="background-color: #f9e5e5; font-size: 14px; font-family: 'Verdana', sans-serif; color: #990000; text-align: left;">Value 2</td>
       </tr>
       <tr>
-        <td>Header 2</td>
-        <td>Value 2</td>
+        <td style="background-color: #f0f0f5; font-size: 14px; font-family: 'Georgia', serif; color: #006400; text-align: left;">Value 3</td>
+        <td style="background-color: #ffe0b3; font-size: 14px; font-family: 'Courier New', monospace; color: #663300; text-align: left;">Value 4</td>
       </tr>
-      <tr>
-        <td>Header 3</td>
-        <td>Value 3</td>
-      </tr>
+      <!-- Repeat rows for a total of 14 rows -->
       <!-- Add more rows here -->
+      <tr>
+        <td style="background-color: #f0f0f5; font-size: 14px; font-family: 'Georgia', serif; color: #006400; text-align: left;">Value 13</td>
+        <td style="background-color: #ffe0b3; font-size: 14px; font-family: 'Courier New', monospace; color: #663300; text-align: left;">Value 14</td>
+      </tr>
     </tbody>
   </table>
 </body>
