@@ -1,23 +1,36 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title> Notifications</title>
+  <title>Major Incident Notifications</title>
+  <style>
+    /* CSS styles for the table caption */
+    caption {
+      font-family: 'Arial', sans-serif; /* Change font family */
+      font-weight: bold;
+      font-size: 18px;
+      background: linear-gradient(to right, #ff8a00, #e52e71); /* Background gradient */
+      color: white;
+      padding: 10px;
+      caption-side: top;
+    }
+  </style>
 </head>
 <body>
   <table border="1" style="border-collapse: collapse; width: 100%;">
+    <caption>Major Incident Notifications Table</caption>
     <thead>
       <tr>
-        <th style="padding: 8px; text-align: left;">Column 1</th>
-        <th style="padding: 8px; text-align: left;">Column 2</th>
+        <th style="padding: 8px; text-align: left;">Column 1 Header</th>
+        <th style="padding: 8px; text-align: left;">Column 2 Header</th>
       </tr>
     </thead>
     <tbody>
-      <tr style="background-color: #f2f2f2;">
-        <td style="padding: 8px;">Row 1 Data 1</td>
+      <tr style="font-size: 14px;">
+        <td style="padding: 8px; color: #ff6347;">Row 1 Data 1</td>
         <td style="padding: 8px;">Row 1 Data 2</td>
       </tr>
-      <tr>
-        <td style="padding: 8px;">Row 2 Data 1</td>
+      <tr style="font-size: 14px;">
+        <td style="padding: 8px; color: #32cd32;">Row 2 Data 1</td>
         <td style="padding: 8px;">Row 2 Data 2</td>
       </tr>
       <!-- Add more rows and data here -->
