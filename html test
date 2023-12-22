@@ -1,58 +1,44 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Major Incident Notifications</title>
-  <style>
-    /* CSS styles for the table caption */
-    caption {
-      font-family: 'Arial', sans-serif; /* Change font family */
-      font-weight: bold;
-      font-size: 18px;
-      background: linear-gradient(to right, #ff8a00, #e52e71); /* Background gradient */
-      color: white;
-      padding: 10px;
-      caption-side: top;
-      text-align: left; /* Align the caption text to the left */
-    }
-    th {
-      padding: 8px;
-      text-align: left;
-    }
-    td {
-      padding: 8px;
-      text-align: left;
-    }
-  </style>
-</head>
 <body>
-  <table border="1" style="border-collapse: collapse; width: 100%;">
-    <caption>Major Incident Notifications Table</caption>
-    <colgroup>
-      <col style="width: 30%;"> <!-- Adjust width of column 1 -->
-      <col style="width: 70%;"> <!-- Adjust width of column 2 -->
-    </colgroup>
-    <thead>
-      <tr>
-        <th>Column 1 Header</th>
-        <th>Column 2 Header</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td style="background-color: #cce6ff; font-size: 14px; font-family: 'Arial', sans-serif; color: #333;">Value 1</td>
-        <td style="background-color: #f9e5e5; font-size: 14px; font-family: 'Verdana', sans-serif; color: #990000; text-align: left;">Value 2</td>
-      </tr>
-      <tr>
-        <td style="background-color: #f0f0f5; font-size: 14px; font-family: 'Georgia', serif; color: #006400; text-align: left;">Value 3</td>
-        <td style="background-color: #ffe0b3; font-size: 14px; font-family: 'Courier New', monospace; color: #663300; text-align: left;">Value 4</td>
-      </tr>
-      <!-- Repeat rows for a total of 14 rows -->
-      <!-- Add more rows here -->
-      <tr>
-        <td style="background-color: #f0f0f5; font-size: 14px; font-family: 'Georgia', serif; color: #006400; text-align: left;">Value 13</td>
-        <td style="background-color: #ffe0b3; font-size: 14px; font-family: 'Courier New', monospace; color: #663300; text-align: left;">Value 14</td>
-      </tr>
-    </tbody>
+  <table align="center" border="0" cellpadding="0" cellspacing="0" width="600">
+    <tr>
+      <td align="center" bgcolor="#f2f2f2" style="padding: 10px;">
+        <h1>Your Company Name</h1>
+        <p>Welcome to our notification service</p>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#e52e71" style="padding: 8px; color: white; font-weight: bold;">
+        Important Notification: [Your notification message here]
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#ffffff" style="padding: 20px;">
+        <table border="1" cellpadding="8" cellspacing="0" width="100%" style="border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th>Column 1</th>
+              <th>Column 2</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Value 1</td>
+              <td>Value 2</td>
+            </tr>
+            <!-- Add more rows here -->
+          </tbody>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" bgcolor="#f2f2f2" style="padding: 10px;">
+        <p>Contact us at: contact@example.com</p>
+        <p>&copy; 2023 Your Company Name. All rights reserved.</p>
+        <p><a href="#">Unsubscribe</a></p>
+      </td>
+    </tr>
   </table>
 </body>
 </html>
