@@ -1,83 +1,38 @@
+# Define the path to your Excel file
+$excelFilePath = "C:\path\to\your\file.xlsx"
 
+# Define the reference key
+$referenceKey = "ABC"  # Replace with your reference key
 
-# # Create an empty hash table to store the handover details
-$handoverDetails = @{}
+# Create an Excel application object
+$excel = New-Object -ComObject Excel.Application
 
-# Prompt user for ticket handover details
-do {
-    # Ask if there is any ticket to handover
-    $handoverChoice = Read-Host "Is there any ticket to handover? (yes/no)"
+# Make Excel visible (optional)
+$excel.Visible = $false
 
-    if ($handoverChoice -eq "yes") {
-        # Ask for the incident number
-        $incidentNumber = Read-Host "Enter the incident number:"
+# Open the workbook
+$workbook = $excel.Workbooks.Open($excelFilePath)
 
-        # Ask for the person providing the handover
-        $handoverBy = Read-Host "Enter the username providing the handover:"
+# Get the worksheet (assuming it's the first one)
+$worksheet = $workbook.Sheets.Item(1)
 
-        # Ask for the plan of action for the ticket
-        $planOfAction = Read-Host "Enter the plan of action for the ticket:"
-
-        # Ask to whom it is being reassigned
-        $reassignTo = Read-Host "Enter the username to whom it is being reassigned:"
-
-        # Create an object to store all the handover details
-        $handoverObject = [PSCustomObject]@{
-            IncidentNumber = $incidentNumber
-            HandoverBy = $handoverBy
-            PlanOfAction = $planOfAction
-            ReassignTo = $reassignTo
-        }
-
-        # Add the handover details object to the hash table
-        $handoverDetails[$incidentNumber] = $handoverObject
+# Find the value in column 1 (A) and get the corresponding value in column 10 (J)
+$found = $false
+$lastRow = $worksheet.UsedRange.Rows.Count
+for ($row = 1; $row -le $lastRow; $row++) {
+    $cellValue = $worksheet.Cells.Item($row, 1).Value2  # Column 1 (A)
+    if ($cellValue -eq $referenceKey) {
+        $found = $true
+        $lookupValue = $worksheet.Cells.Item($row, 10).Value2  # Column 10 (J)
+        $excel.Quit()
+        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+        Write-Output $lookupValue
+        break
     }
-    elseif ($handoverChoice -ne "no") {
-        Write-Host "Invalid choice. Please enter 'yes' or 'no'."
-    }
-
-} while ($handoverChoice -ne "no")
-
-# Output the captured handover details
-Write-Host "Handover Details:"
-foreach ($incident in $handoverDetails.GetEnumerator()) {
-    Write-Host "Incident Number: $($incident.Value.IncidentNumber)"
-    Write-Host "Handover By: $($incident.Value.HandoverBy)"
-    Write-Host "Plan of Action: $($incident.Value.PlanOfAction)"
-    Write-Host "Reassigned To: $($incident.Value.ReassignTo)"
-    Write-Host ""
 }
 
-
----
-- name: Generate Snow API token
-  hosts: localhost
-  gather_facts: false
-  vars:
-    client_id: "your_client_id"
-    client_secret: "your_client_secret"
-    token_url: "https://your-snow-api.com/oauth/token"
-    token_payload:
-      grant_type: "client_credentials"
-      scope: "api"
-  tasks:
-    - name: Generate token
-      uri:
-        url: "{{ token_url }}"
-        method: POST
-        body_format: form-urlencoded
-        body:
-          grant_type: "{{ token_payload.grant_type }}"
-          scope: "{{ token_payload.scope }}"
-        headers:
-          Content-Type: "application/x-www-form-urlencoded"
-        auth:
-          user: "{{ client_id }}"
-          password: "{{ client_secret }}"
-        validate_certs: false
-        return_content: yes
-      register: token_response
-
-    - name: Print token
-      debug:
-        var: token_response.json.access_token
+if (-not $found) {
+    $excel.Quit()
+    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
+    Write-Output "Not found"
+}
