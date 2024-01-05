@@ -1,38 +1,16 @@
-# Define the path to your Excel file
-$excelFilePath = "C:\path\to\your\file.xlsx"
+ @{}
 
-# Define the reference key
-$referenceKey = "ABC"  # Replace with your reference key
+# Use regex to extract key-value pairs
+$matches = [Regex]::Matches($responseBody, '([^:\r\n]+): ([^:\r\n]+)')
 
-# Create an Excel application object
-$excel = New-Object -ComObject Excel.Application
-
-# Make Excel visible (optional)
-$excel.Visible = $false
-
-# Open the workbook
-$workbook = $excel.Workbooks.Open($excelFilePath)
-
-# Get the worksheet (assuming it's the first one)
-$worksheet = $workbook.Sheets.Item(1)
-
-# Find the value in column 1 (A) and get the corresponding value in column 10 (J)
-$found = $false
-$lastRow = $worksheet.UsedRange.Rows.Count
-for ($row = 1; $row -le $lastRow; $row++) {
-    $cellValue = $worksheet.Cells.Item($row, 1).Value2  # Column 1 (A)
-    if ($cellValue -eq $referenceKey) {
-        $found = $true
-        $lookupValue = $worksheet.Cells.Item($row, 10).Value2  # Column 10 (J)
-        $excel.Quit()
-        [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
-        Write-Output $lookupValue
-        break
-    }
+# Iterate through matches and populate the dictionary
+foreach ($match in $matches) {
+    $key = $match.Groups[1].Value.Trim()
+    $value = $match.Groups[2].Value.Trim()
+    $dictionary[$key] = $value
 }
 
-if (-not $found) {
-    $excel.Quit()
-    [System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
-    Write-Output "Not found"
+# Print the entire dictionary content
+foreach ($pair in $dictionary.GetEnumerator()) {
+    Write-Host "$($pair.Name) : $($pair.Value)"
 }
