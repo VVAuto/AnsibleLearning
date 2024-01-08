@@ -1,16 +1,42 @@
- @{}
+ function ProcessList {
+    param (
+        [Parameter(Mandatory=$true)]
+        [System.Collections.IList]$InputList
+    )
 
-# Use regex to extract key-value pairs
-$matches = [Regex]::Matches($responseBody, '([^:\r\n]+): ([^:\r\n]+)')
+    $timeout = 30  # Timeout in seconds
 
-# Iterate through matches and populate the dictionary
-foreach ($match in $matches) {
-    $key = $match.Groups[1].Value.Trim()
-    $value = $match.Groups[2].Value.Trim()
-    $dictionary[$key] = $value
+    foreach ($item in $InputList) {
+        Write-Host "Do you want to process $($item)? (yes/no)"
+        $timer = [Diagnostics.Stopwatch]::StartNew()
+        $choice = $null
+
+        while (-not $choice -and ($timer.Elapsed.TotalSeconds -lt $timeout)) {
+            $timeLeft = $timeout - [math]::Ceiling($timer.Elapsed.TotalSeconds)
+            Write-Host "Time remaining: $timeLeft seconds" -NoNewline
+            Start-Sleep -Seconds 1
+            Write-Host "`r`t`t`t`t`t`t`t`t" -NoNewline
+            if ($Host.UI.RawUI.KeyAvailable) {
+                $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+                if ($key.VirtualKeyCode -eq 13) {
+                    $choice = "yes"
+                }
+            }
+        }
+
+        $timer.Stop()
+
+        if (-not $choice -or $choice -eq "yes") {
+            # Perform your task here using $item
+            Write-Host "Processing $($item)..."
+        } else {
+            Write-Host "Skipping $($item)..."
+        }
+    }
 }
 
-# Print the entire dictionary content
-foreach ($pair in $dictionary.GetEnumerator()) {
-    Write-Host "$($pair.Name) : $($pair.Value)"
-}
+# Example list
+$list = @(1, 2, 3, 4, 5)
+
+# Call the function
+ProcessList -InputList $list
