@@ -16,7 +16,7 @@ function ProcessList {
 
             while (-not $choice -and ($timer.Elapsed.TotalSeconds -lt $timeout)) {
                 $timeLeft = $timeout - [math]::Ceiling($timer.Elapsed.TotalSeconds)
-                Write-Host "Time remaining: $timeLeft seconds" -NoNewline
+                Write-Host "Time remaining for $($item): $timeLeft seconds" -NoNewline
                 Start-Sleep -Seconds 1
                 Write-Host "`r`t`t`t`t`t`t`t`t" -NoNewline
                 if ($Host.UI.RawUI.KeyAvailable) {
