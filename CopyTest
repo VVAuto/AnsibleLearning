@@ -1,52 +1,46 @@
-$excelFilePath = "C:\path\to\input.xlsx"
-$outputFilePath = "C:\path\to\output.xlsx"
-$columnIndex = 1
-$rowCountThreshold = 10
 
-# Load the Excel file
-$excel = New-Object -ComObject Excel.Application
-$workbook = $excel.Workbooks.Open($excelFilePath)
-$worksheet = $workbook.Sheets.Item(1)
-
-# Get the used range of the worksheet
-$usedRange = $worksheet.UsedRange
-
-# Get the total number of rows
-$totalRowCount = $usedRange.Rows.Count
-
-# Create a new Excel object for the output file
-$outputExcel = New-Object -ComObject Excel.Application
-$outputWorkbook = $outputExcel.Workbooks.Add()
-$outputWorksheet = $outputWorkbook.Sheets.Item(1)
-
-# Copy rows based on count in the first column
-$copyCount = 0
-for ($row = 1; $row -le $totalRowCount; $row++) {
-    $cellValue = $usedRange.Item($row, $columnIndex).Text
-
-    # Check if the count in the first column meets the threshold
-    if ([int]$cellValue -ge $rowCountThreshold) {
-        $copyCount++
-
-        # Copy the entire row to the output worksheet
-        $usedRange.Rows($row).Copy()
-        $outputWorksheet.Cells($copyCount, 1).PasteSpecial()
-
-        # Copy formatting if needed
-        $usedRange.Rows($row).Copy()
-        $outputWorksheet.Cells($copyCount, 1).PasteSpecial(-4163)
+    
+# Function to perform NSLookup and retrieve IP addresses
+function Get-IPAddress {
+    param (
+        [string]$deviceName
+    )
+    $ipAddress = $null
+    try {
+        $result = Resolve-DnsName -Name $deviceName -ErrorAction Stop
+        $ipAddress = $result.IPAddress
+    } catch {
+        Write-Warning "Failed to resolve IP address for $deviceName"
     }
+    return $ipAddress
 }
 
-# Save and close the output file
-$outputWorkbook.SaveAs($outputFilePath)
-$outputWorkbook.Close()
+# Path to the text file containing device names (each device name on a new line)
+$devicesFile = "devices.txt"
 
-# Clean up the Excel objects
+# Read device names from the text file
+$deviceNames = Get-Content $devicesFile
+
+# Create Excel object
+$excel = New-Object -ComObject Excel.Application
+$workbook = $excel.Workbooks.Add()
+$sheet = $workbook.Worksheets.Item(1)
+$sheet.Cells.Item(1,1) = "Device Name"
+$sheet.Cells.Item(1,2) = "IP Address"
+
+# Populate Excel with results
+$row = 2
+foreach ($device in $deviceNames) {
+    $ip = Get-IPAddress $device
+    $sheet.Cells.Item($row, 1) = $device
+    $sheet.Cells.Item($row, 2) = $ip
+    $row++
+}
+
+# Save Excel file
+$excelFile = "Device_IPs.xlsx"
+$workbook.SaveAs($excelFile)
+$workbook.Close()
 $excel.Quit()
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($usedRange) | Out-Null
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($worksheet) | Out-Null
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($workbook) | Out-Null
-[System.Runtime.Interopservices.Marshal]::ReleaseComObject($excel) | Out-Null
-[System.GC]::Collect()
-[System.GC]::WaitForPendingFinalizers()
+
+Write-Host "Excel file created: $excelFile"
