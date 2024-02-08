@@ -14,25 +14,31 @@
         padding: 8px;
         text-align: left;
     }
+    .form-group {
+        margin-bottom: 10px;
+    }
 </style>
 </head>
 <body>
 
-<form id="myForm">
+<div class="form-group">
     <label for="requirements">Requirements:</label>
     <select id="requirements" name="requirements">
         <option value="value1">Value 1</option>
         <option value="value2">Value 2</option>
     </select>
-    <br>
+</div>
+<div class="form-group">
     <label for="name">Name:</label>
     <input type="text" id="name" name="name">
-    <br>
+</div>
+<div class="form-group">
     <label for="submittee">Submittee:</label>
     <input type="text" id="submittee" name="submittee" required>
-    <br>
+</div>
+<div class="form-group">
     <button type="button" onclick="previewDetails()">Preview Details</button>
-</form>
+</div>
 
 <table id="previewTable">
     <thead>
@@ -47,14 +53,16 @@
     </tbody>
 </table>
 
-<button onclick="copyToClipboard()">Copy Table to Clipboard</button>
+<div class="form-group">
+    <button onclick="copyToClipboard()">Copy Table to Clipboard</button>
+</div>
 
 <script>
 function previewDetails() {
     var form = document.getElementById("myForm");
-    var requirements = form.elements["requirements"].value;
-    var name = form.elements["name"].value;
-    var submittee = form.elements["submittee"].value;
+    var requirements = document.getElementById("requirements").value;
+    var name = document.getElementById("name").value;
+    var submittee = document.getElementById("submittee").value;
 
     var table = document.getElementById("previewTable").getElementsByTagName('tbody')[0];
     var newRow = table.insertRow(table.rows.length);
