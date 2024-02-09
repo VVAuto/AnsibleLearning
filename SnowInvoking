@@ -1,48 +1,24 @@
-function ProcessList {
-    param (
-        [Parameter(Mandatory=$true)]
-        [System.Collections.IList]$InputList
-    )
-
-    $timeout = 30  # Timeout in seconds
-
-    foreach ($item in $InputList) {
-        $proceed = $false
-
-        do {
-            Write-Host "Do you want to process $($item)? (yes/no)"
-            $timer = [Diagnostics.Stopwatch]::StartNew()
-            $choice = $null
-
-            while (-not $choice -and ($timer.Elapsed.TotalSeconds -lt $timeout)) {
-                $timeLeft = $timeout - [math]::Ceiling($timer.Elapsed.TotalSeconds)
-                Write-Host "Time remaining for $($item): $timeLeft seconds" -NoNewline
-                Start-Sleep -Seconds 1
-                Write-Host "`r`t`t`t`t`t`t`t`t" -NoNewline
-                if ($Host.UI.RawUI.KeyAvailable) {
-                    $key = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-                    if ($key.VirtualKeyCode -eq 13) {
-                        $choice = "yes"
-                    }
-                }
-            }
-
-            $timer.Stop()
-
-            if (-not $choice -or $choice -eq "yes") {
-                # Perform your task here using $item
-                Write-Host "Processing $($item)..."
-                $proceed = $true
-            } else {
-                Write-Host "Skipping $($item)..."
-                $proceed = $true
-            }
-        } until ($proceed)
+function publishPercentage() {
+  let totalYes = 0;
+  let totalQuestions = 0;
+  
+  // Loop through each toggle
+  for (let i = 1; i <= 3; i++) {
+    let toggle = document.getElementById('toggle' + i);
+    
+    // Check which option is selected
+    let selectedOption = toggle.querySelector('input:checked');
+    
+    // Increment total count based on the selected option
+    if (selectedOption && selectedOption.value === 'yes') {
+      totalYes++;
     }
+    totalQuestions++;
+  }
+  
+  // Calculate percentage of "Yes" responses
+  let percentage = (totalYes / totalQuestions) * 100;
+  
+  // Display percentage
+  alert('Percentage of "Yes" responses: ' + percentage.toFixed(2) + '%');
 }
-
-# Example list
-$list = @(1, 2, 3, 4, 5)
-
-# Call the function
-ProcessList -InputList $list
