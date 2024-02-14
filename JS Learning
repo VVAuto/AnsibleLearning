@@ -1,0 +1,28 @@
+// js/script.js
+
+// Function to fetch and display CSV data
+function fetchAndDisplayCSV(filePath) {
+    fetch(filePath)
+        .then(response => response.text())
+        .then(data => createTableRows(data))
+        .catch(error => console.error('Error fetching CSV:', error));
+}
+
+// Function to dynamically create table rows from CSV data
+function createTableRows(data) {
+    var table = document.getElementById("csvTable");
+    var rows = data.split('\n');
+
+    for (var i = 0; i < rows.length; i++) {
+        var row = table.insertRow(i);
+
+        var cells = rows[i].split(',');
+        for (var j = 0; j < cells.length; j++) {
+            var cell = row.insertCell(j);
+            cell.innerHTML = cells[j];
+        }
+    }
+}
+
+// Call the function with the path to your CSV file
+fetchAndDisplayCSV('data/sample.csv');
