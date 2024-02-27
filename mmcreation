@@ -1,0 +1,37 @@
+#!/usr/bin/python
+from ansible.module_utils.basic import AnsibleModule
+import re
+
+def check(data):
+    m = re.findall(r" (?<=ok )[\w-]*", data)
+    if 'ok' in m and len(m) == 1:
+        return "p"
+    else:
+        return "<"
+
+def another_function(data):
+    # Add your implementation for another function here
+    return data.upper()
+
+def main():
+    module = AnsibleModule(
+        argument_spec=dict(
+            data=dict(type='str', required=True),
+            function=dict(type='str', required=True)
+        )
+    )
+
+    data = module.params['data']
+    function = module.params['function']
+
+    if function == 'check':
+        result = check(data)
+    elif function == 'another_function':
+        result = another_function(data)
+    else:
+        module.fail_json(msg="Invalid function provided")
+
+    module.exit_json(changed=False, result=result)
+
+if __name__ == '__main__':
+    main()
