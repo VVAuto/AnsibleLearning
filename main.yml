@@ -1,0 +1,45 @@
+---
+- name: Gather network device information
+  hosts: your_network_inventory_group
+  gather_facts: no
+
+  tasks:
+    - name: Gather information from Cisco IOS devices
+      ios_facts:
+        gather_subset: hardware,version,config
+      register: ios_devices_info
+      when: ansible_network_os == 'ios'
+
+    - name: Gather information from Cisco IOS XR devices
+      iosxr_facts:
+        gather_subset: hardware,version,config
+      register: iosxr_devices_info
+      when: ansible_network_os == 'iosxr'
+
+    - name: Gather information from Cisco ASA devices
+      asa_facts:
+        gather_subset: hardware,version,config
+      register: asa_devices_info
+      when: ansible_network_os == 'asa'
+
+    - name: Gather information from Cisco Aironet devices
+      ios_facts:
+        gather_subset: hardware,version,config
+      register: air_os_devices_info
+      when: ansible_network_os == 'air_os'
+
+    - name: Gather information from Juniper Junos devices
+      junos_facts:
+        gather_subset: hardware,version,config
+      register: junos_devices_info
+      when: ansible_network_os == 'junos'
+
+  handlers:
+    - name: Print gathered information
+      debug:
+        var:
+          ios_devices_info
+          iosxr_devices_info
+          asa_devices_info
+          air_os_devices_info
+          junos_devices_info
