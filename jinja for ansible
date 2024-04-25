@@ -1,0 +1,4 @@
+Hostname    Status    Error (if any)
+{% for host in ping_result.results %}
+{{ host.invocation.module_args.data.host }}    {{ 'SUCCESS' if host.ping else 'FAILED' }}    {{ host.msg if not host.ping else '' }}
+{% endfor %}
