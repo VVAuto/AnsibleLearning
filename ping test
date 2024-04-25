@@ -1,0 +1,13 @@
+---
+- name: Ping all hosts and display results in a table
+  hosts: all
+  gather_facts: no
+  tasks:
+    - name: Ping all hosts
+      ping:
+      register: ping_result
+
+    - name: Display results in a table
+      template:
+        src: ping_results.j2
+        dest: "{{ playbook_dir }}/ping_results.txt"
