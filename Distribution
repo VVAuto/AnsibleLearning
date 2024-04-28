@@ -1,0 +1,80 @@
+$month = Get-Date -Format "MMMM"
+$year = Get-Date -Format "yyyy"
+$daysInMonth = [System.DateTime]::DaysInMonth($year, (Get-Date).Month)
+
+$weekdays = @()
+$weekends = @()
+
+for ($day = 1; $day -le $daysInMonth; $day++) {
+    $date = Get-Date -Year $year -Month (Get-Date).Month -Day $day
+    if ($date.DayOfWeek -eq "Saturday" -or $date.DayOfWeek -eq "Sunday") {
+        $weekends += $date
+    } else {
+        $weekdays += $date
+    }
+}
+
+# Distribute first 5 consecutive working days to members 1-4
+$member1Days = $weekdays[0..4] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
+$member2Days = $weekdays[5..9] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
+$member3Days = $weekdays[10..14] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
+$member4Days = $weekdays[15..19] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
+
+# Assign remaining working days to member 5
+$member5Days = $weekdays[20..($weekdays.Count - 1)] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
+
+# Create HTML content
+$htmlContent = @"
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Schedule</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h2 {
+            margin-bottom: 10px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h2>$month $year</h2>
+    <h3>Member 1's working days:</h3>
+    <ul>
+        $(foreach ($day in $member1Days) { "<li>$day</li>" })
+    </ul>
+    <h3>Member 2's working days:</h3>
+    <ul>
+        $(foreach ($day in $member2Days) { "<li>$day</li>" })
+    </ul>
+    <h3>Member 3's working days:</h3>
+    <ul>
+        $(foreach ($day in $member3Days) { "<li>$day</li>" })
+    </ul>
+    <h3>Member 4's working days:</h3>
+    <ul>
+        $(foreach ($day in $member4Days) { "<li>$day</li>" })
+    </ul>
+    <h3>Member 5's working days:</h3>
+    <ul>
+        $(foreach ($day in $member5Days) { "<li>$day</li>" })
+    </ul>
+</body>
+</html>
+"@
+
+# Save HTML content to file
+$htmlContent | Out-File -FilePath "WorkSchedule.html" -Encoding UTF8
+
+Write-Output "HTML file 'WorkSchedule.html' generated successfully."
