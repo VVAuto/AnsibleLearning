@@ -1,0 +1,34 @@
+import datetime
+
+def count_working_days(start_date, end_date):
+    # Define your working days here
+    working_days = [0, 1, 2, 3, 4]  # Monday to Friday
+    
+    # Convert start and end dates to datetime objects
+    start = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+
+    # Calculate the number of working days passed and remaining
+    passed = 0
+    current_date = start
+    while current_date <= min(end, datetime.datetime.now()):
+        if current_date.weekday() in working_days:
+            passed += 1
+        current_date += datetime.timedelta(days=1)
+
+    left = 0
+    current_date = max(start, datetime.datetime.now())
+    while current_date <= end:
+        if current_date.weekday() in working_days:
+            left += 1
+        current_date += datetime.timedelta(days=1)
+
+    return passed, left
+
+# Example usage:
+start_date = input("Enter start date (YYYY-MM-DD): ")
+end_date = input("Enter end date (YYYY-MM-DD): ")
+
+passed, left = count_working_days(start_date, end_date)
+print(f"Number of working days passed: {passed}")
+print(f"Number of working days left: {left}")
