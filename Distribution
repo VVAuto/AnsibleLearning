@@ -1,80 +1,47 @@
-$month = Get-Date -Format "MMMM"
-$year = Get-Date -Format "yyyy"
-$daysInMonth = [System.DateTime]::DaysInMonth($year, (Get-Date).Month)
+import os
+import csv
 
-$weekdays = @()
-$weekends = @()
+class CSVProcessor:
+    def __init__(self, csv_dir):
+        self.csv_dir = csv_dir
+        self.master_list = []
+        self.headers = ["test"]
+    
+    def process_csv_files(self, weeks=None):
+        csv_list = self._get_csv_list()
+        for file in csv_list:
+            path = os.path.join(self.csv_dir, file)
+            csv_data = self._read_csv(path)
+            processed_data = self._process_csv_data(csv_data, file)
+            self.master_list.append(processed_data)
+        
+        if weeks:
+            self.add_week_headers(weeks)
+        
+        return self.headers, self.master_list
+    
+    def _get_csv_list(self):
+        return sorted(os.listdir(self.csv_dir), reverse=True)
+    
+    def _read_csv(self, file_path):
+        with open(file_path, 'r', newline='') as file:
+            reader = csv.reader(file)
+            csv_data = list(reader)
+        return csv_data
+    
+    def _process_csv_data(self, csv_data, file_name):
+        # Your CSV processing logic here
+        processed_data = []  # Placeholder for processed data
+        return processed_data
+    
+    def add_week_headers(self, weeks):
+        for week in weeks:
+            self.headers.append(week)
 
-for ($day = 1; $day -le $daysInMonth; $day++) {
-    $date = Get-Date -Year $year -Month (Get-Date).Month -Day $day
-    if ($date.DayOfWeek -eq "Saturday" -or $date.DayOfWeek -eq "Sunday") {
-        $weekends += $date
-    } else {
-        $weekdays += $date
-    }
-}
+# Usage
+csv_dir = os.getcwd() + '/csv'
+csv_processor = CSVProcessor(csv_dir)
+headers, master_list = csv_processor.process_csv_files(weeks=["123W"])
 
-# Distribute first 5 consecutive working days to members 1-4
-$member1Days = $weekdays[0..4] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
-$member2Days = $weekdays[5..9] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
-$member3Days = $weekdays[10..14] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
-$member4Days = $weekdays[15..19] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
-
-# Assign remaining working days to member 5
-$member5Days = $weekdays[20..($weekdays.Count - 1)] | ForEach-Object { $_.ToString("dddd, dd MMMM yyyy") }
-
-# Create HTML content
-$htmlContent = @"
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Work Schedule</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        h2 {
-            margin-bottom: 10px;
-        }
-        ul {
-            list-style-type: none;
-            padding: 0;
-        }
-        li {
-            margin-bottom: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h2>$month $year</h2>
-    <h3>Member 1's working days:</h3>
-    <ul>
-        $(foreach ($day in $member1Days) { "<li>$day</li>" })
-    </ul>
-    <h3>Member 2's working days:</h3>
-    <ul>
-        $(foreach ($day in $member2Days) { "<li>$day</li>" })
-    </ul>
-    <h3>Member 3's working days:</h3>
-    <ul>
-        $(foreach ($day in $member3Days) { "<li>$day</li>" })
-    </ul>
-    <h3>Member 4's working days:</h3>
-    <ul>
-        $(foreach ($day in $member4Days) { "<li>$day</li>" })
-    </ul>
-    <h3>Member 5's working days:</h3>
-    <ul>
-        $(foreach ($day in $member5Days) { "<li>$day</li>" })
-    </ul>
-</body>
-</html>
-"@
-
-# Save HTML content to file
-$htmlContent | Out-File -FilePath "WorkSchedule.html" -Encoding UTF8
-
-Write-Output "HTML file 'WorkSchedule.html' generated successfully."
+print(headers)
+print(master_list)
