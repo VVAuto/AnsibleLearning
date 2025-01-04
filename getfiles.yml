@@ -1,0 +1,51 @@
+---
+- name: Find matching pre and post JSON files
+  hosts: localhost
+  gather_facts: no
+  vars:
+    pre_unique_id: '123'
+    post_unique_id: '456'
+
+  tasks:
+    - name: Get list of JSON files
+      find:
+        paths: ./files
+        patterns: "*.json"
+      register: json_files
+
+    - name: Get files
+      set_fact:
+        pre_files: "{{ json_files.files | selectattr('path', 'search', '^.*/pre_.*' + pre_unique_id) | map(attribute='path') | list }}"
+        post_files: "{{ json_files.files | selectattr('path', 'search', '^.*/post_.*' + post_unique_id) | map(attribute='path') | list }}"
+
+    - name: Print matching files
+      debug:
+        msg: 
+          - "{{ pre_files }}"
+          - "{{ post_files }}"
+
+    - name: Create Jinja
+      set_fact:
+        data_table: |-
+          {%- set temp = [] -%}
+            {%- if pre_files is defined and post_files is defined -%}
+              {%- for pre_file in pre_files -%}
+                {%- set post_file = pre_file.replace('pre','post').replace(pre_unique_id,post_unique_id) -%}
+                  {%- if post_file in post_files -%}
+                    {{ temp.append([pre_file,post_file,'files_found']) }}
+                  {%- elif post_file not in post_files -%}
+                    {{ temp.append([pre_file,post_file,"post_check_not_found"]) }}
+                  {%- endif -%}
+              {%- endfor -%}
+              {%- for post_file in post_files -%}
+                {%- set pre_file = post_file.replace('post','pre').replace(post_unique_id,pre_unique_id) -%}
+                  {%- if pre_file not in pre_files -%}
+                    {{ temp.append([pre_file,post_file,"pre_check_not_found"]) }}
+                  {%- endif -%}
+              {%- endfor -%}
+            {%- endif -%}
+            {{ temp }}
+
+    - name: Print matching files
+      debug:
+        msg: "{{ data_table }}"
