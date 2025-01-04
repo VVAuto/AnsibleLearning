@@ -1,57 +1,93 @@
----
-- name: Run PowerShell script from SharePoint
-  hosts: windows_host
-  gather_facts: False
+from ansible.module_utils.basic import AnsibleModule
+import json
+import difflib
 
-  vars:
-    site_url: "https://your-sharepoint-site-url"
-    script_path: "/sites/your-site/Shared%20Documents/your-script.ps1"
-    username: "your-username"
-    password: "your-password"
+def compare_json(json1, json2):
+    # Create a lookup dictionary for json2 commands
+    json2_index = {item['command']: item for item in json2}
+    result = []
 
-  tasks:
-    - name: Authenticate and get access token
-      uri:
-        url: "{{ site_url }}/_forms/default.aspx?wa=wsignin1.0"
-        method: POST
-        body_format: form-urlencoded
-        body:
-          username: "{{ username }}"
-          password: "{{ password }}"
-          submit: "Sign in"
-        return_content: yes
-      register: auth_response
+    for item1 in json1:
+        # Check if the command exists in json2
+        item2 = json2_index.get(item1['command'])
+        if not item2:
+            result.append({
+                'command': item1['command'],
+                'result': 'missing_in_json2',
+                'note': 'Command not found in json2'
+            })
+            continue
 
-    - name: Extract access token from response
-      set_fact:
-        access_token: "{{ auth_response.cookies['FedAuth'] }}"
+        # Ensure outputs are lists of lines
+        output1 = item1['output'] if isinstance(item1['output'], list) else item1['output'].splitlines()
+        output2 = item2['output'] if isinstance(item2['output'], list) else item2['output'].splitlines()
 
-    - name: Download PowerShell script from SharePoint
-      uri:
-        url: "{{ site_url }}{{ script_path }}"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ access_token }}"
-        return_content: yes
-      register: script_response
+        # Compare outputs
+        if output1 == output2:
+            result.append({
+                'command': item1['command'],
+                'result': 'match',
+                'added': [],
+                'removed': []
+            })
+        else:
+            # Compute the differences
+            diff = list(difflib.ndiff(output1, output2))
+            added = [line[2:] for line in diff if line.startswith('+ ')]
+            removed = [line[2:] for line in diff if line.startswith('- ')]
+            unmatched_lines = len(added) + len(removed)
+            total_lines = len(output1) + len(output2)
+            delta = round((unmatched_lines / total_lines) * 100, 2) if total_lines > 0 else 0.0
 
-    - name: Save the downloaded script
-      copy:
-        content: "{{ script_response.content }}"
-        dest: "/path/to/your-script.ps1"
-      delegate_to: localhost
+            result.append({
+                'command': item1['command'],
+                'result': 'unmatched',
+                'added': added,
+                'removed': removed,
+                'delta': delta
+            })
 
-    - name: Run PowerShell script
-      win_shell: |
-        powershell.exe -ExecutionPolicy Bypass -File "C:/path/to/your-script.ps1"
-      register: script_output
+    return result
 
-    - name: Print PowerShell script output
-      debug:
-        var: script_output.stdout_lines
+def run_module():
+    module_args = dict(
+        pre_file=dict(type='str', required=True),
+        post_file=dict(type='str', required=True)
+    )
 
-    - name: Remove the downloaded script
-      file:
-        path: "/path/to/your-script.ps1"
-        state: absent
-      delegate_to: localhost
+    result = dict(
+        changed=False,
+        differences=[]
+    )
+
+    module = AnsibleModule(
+        argument_spec=module_args,
+        supports_check_mode=True
+    )
+
+    pre_file = module.params['pre_file']
+    post_file = module.params['post_file']
+
+    try:
+        # Read JSON files
+        with open(pre_file, 'r') as f1:
+            json1 = json.load(f1)
+        with open(post_file, 'r') as f2:
+            json2 = json.load(f2)
+
+        # Compare JSONs
+        differences = compare_json(json1, json2)
+        result['differences'] = differences
+        result['changed'] = any(item['result'] != 'match' for item in differences)
+
+    except FileNotFoundError as e:
+        module.fail_json(msg=f"File not found: {e}", **result)
+    except json.JSONDecodeError as e:
+        module.fail_json(msg=f"Error decoding JSON: {e}", **result)
+    except Exception as e:
+        module.fail_json(msg=str(e), **result)
+
+    module.exit_json(**result)
+
+if __name__ == '__main__':
+    run_module()
