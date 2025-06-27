@@ -1,93 +1,150 @@
-from ansible.module_utils.basic import AnsibleModule
-import json
-import difflib
+# config.py
 
-def compare_json(json1, json2):
-    # Create a lookup dictionary for json2 commands
-    json2_index = {item['command']: item for item in json2}
-    result = []
+import os
 
-    for item1 in json1:
-        # Check if the command exists in json2
-        item2 = json2_index.get(item1['command'])
-        if not item2:
-            result.append({
-                'command': item1['command'],
-                'result': 'missing_in_json2',
-                'note': 'Command not found in json2'
-            })
-            continue
+class DevConfig:
+    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
 
-        # Ensure outputs are lists of lines
-        output1 = item1['output'] if isinstance(item1['output'], list) else item1['output'].splitlines()
-        output2 = item2['output'] if isinstance(item2['output'], list) else item2['output'].splitlines()
+    CLIENT_ID = os.environ["CLIENT_ID"]
+    CLIENT_SECRET = os.environ["CLIENT_SECRET"]
+    AUTHORITY = os.environ.get("AUTHORITY", "https://login.microsoftonline.com/common")
+    REDIRECT_PATH = os.environ.get("REDIRECT_PATH", "/auth")
+    
+    # These are standard OIDC scopes
+    SCOPE = os.environ.get("SCOPE", "openid profile email").split()
 
-        # Compare outputs
-        if output1 == output2:
-            result.append({
-                'command': item1['command'],
-                'result': 'match',
-                'added': [],
-                'removed': []
-            })
-        else:
-            # Compute the differences
-            diff = list(difflib.ndiff(output1, output2))
-            added = [line[2:] for line in diff if line.startswith('+ ')]
-            removed = [line[2:] for line in diff if line.startswith('- ')]
-            unmatched_lines = len(added) + len(removed)
-            total_lines = len(output1) + len(output2)
-            delta = round((unmatched_lines / total_lines) * 100, 2) if total_lines > 0 else 0.0
 
-            result.append({
-                'command': item1['command'],
-                'result': 'unmatched',
-                'added': added,
-                'removed': removed,
-                'delta': delta
-            })
+# app.py
+from flask import Flask, session, render_template, abort
+from auth import auth_bp
+from utils.decorators import login_required, require_roles
+from config import DevConfig
+from datetime import timedelta
 
-    return result
+app = Flask(__name__)
+app.config.from_object(DevConfig)
+app.secret_key = app.config['SECRET_KEY']
 
-def run_module():
-    module_args = dict(
-        pre_file=dict(type='str', required=True),
-        post_file=dict(type='str', required=True)
-    )
+# Security configs
+app.config.update(
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=True,  # Ensure HTTPS
+    SESSION_COOKIE_SAMESITE='Lax'
+)
+app.permanent_session_lifetime = timedelta(hours=2)
 
-    result = dict(
-        changed=False,
-        differences=[]
-    )
+# Register auth blueprint
+app.register_blueprint(auth_bp, url_prefix='')
 
-    module = AnsibleModule(
-        argument_spec=module_args,
-        supports_check_mode=True
-    )
+@app.before_request
+def make_session_permanent():
+    session.permanent = True
 
-    pre_file = module.params['pre_file']
-    post_file = module.params['post_file']
+@app.route('/')
+@login_required
+def home():
+    user = session['user']
+    return render_template("home.html", user=user)
 
-    try:
-        # Read JSON files
-        with open(pre_file, 'r') as f1:
-            json1 = json.load(f1)
-        with open(post_file, 'r') as f2:
-            json2 = json.load(f2)
+@app.route('/secure')
+@login_required
+@require_roles(['Admin', 'PrivUser'])
+def secure_area():
+    return "Admins or PrivUsers only."
 
-        # Compare JSONs
-        differences = compare_json(json1, json2)
-        result['differences'] = differences
-        result['changed'] = any(item['result'] != 'match' for item in differences)
-
-    except FileNotFoundError as e:
-        module.fail_json(msg=f"File not found: {e}", **result)
-    except json.JSONDecodeError as e:
-        module.fail_json(msg=f"Error decoding JSON: {e}", **result)
-    except Exception as e:
-        module.fail_json(msg=str(e), **result)
-
-    module.exit_json(**result)
+@app.errorhandler(403)
+def forbidden(e):
+    return "403 Forbidden – Access denied", 403
 
 if __name__ == '__main__':
-    run_module()
+    app.run(debug=True)
+
+
+# utils/decorators.py
+from functools import wraps
+from flask import session, redirect, url_for, abort
+
+def login_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if 'user' not in session:
+            return redirect(url_for('auth.login'))
+        return f(*args, **kwargs)
+    return wrapper
+
+def require_roles(required_roles):
+    def decorator(f):
+        @wraps(f)
+        def wrapper(*args, **kwargs):
+            roles = session.get('user', {}).get('roles', [])
+            if not any(r in roles for r in required_roles):
+                return abort(403)
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+# auth.py
+import uuid, msal
+from flask import Blueprint, session, redirect, url_for, request, current_app, abort
+
+auth_bp = Blueprint('auth', __name__)
+
+def _build_msal_app():
+    return msal.ConfidentialClientApplication(
+        current_app.config['CLIENT_ID'],
+        authority=current_app.config['AUTHORITY'],
+        client_credential=current_app.config['CLIENT_SECRET']
+    )
+
+@auth_bp.route('/login')
+def login():
+    session.clear()
+    state = str(uuid.uuid4())
+    session['state'] = state
+    auth_url = _build_msal_app().get_authorization_request_url(
+        scopes=current_app.config['SCOPE'],
+        state=state,
+        redirect_uri=url_for('auth.callback', _external=True, _scheme='https')
+    )
+    return redirect(auth_url)
+
+@auth_bp.route(current_app.config.get('REDIRECT_PATH', '/auth'))
+def callback():
+    if request.args.get('state') != session.get('state'):
+        return abort(400, "Invalid state")
+    if 'error' in request.args:
+        return abort(400, request.args.get('error_description', 'Authentication error'))
+
+    code = request.args.get('code')
+    if not code:
+        return redirect(url_for('home'))
+
+    result = _build_msal_app().acquire_token_by_authorization_code(
+        code=code,
+        scopes=current_app.config['SCOPE'],
+        redirect_uri=url_for('auth.callback', _external=True, _scheme='https')
+    )
+    if 'error' in result:
+        return abort(400, result.get('error_description', 'Token acquisition failed'))
+
+    claims = result['id_token_claims']
+    session['user'] = {
+        'name': claims.get('name'),
+        'email': claims.get('preferred_username'),
+        'roles': claims.get('roles', [])
+    }
+
+    return redirect(url_for('home'))
+
+@auth_bp.route('/logout')
+def logout():
+    session.clear()
+    return redirect(
+        f"{current_app.config['AUTHORITY']}/oauth2/v2.0/logout"
+        f"?post_logout_redirect_uri={url_for('home', _external=True)}"
+    )
+
+
+
+
