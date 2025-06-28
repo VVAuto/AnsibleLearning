@@ -1,150 +1,131 @@
-# config.py
+# app.py
 
+from flask import Flask, redirect, url_for, session, request, render_template_string, abort
+from functools import wraps
+import msal
+import uuid
 import os
 
-class DevConfig:
-    SECRET_KEY = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
-
-    CLIENT_ID = os.environ["CLIENT_ID"]
-    CLIENT_SECRET = os.environ["CLIENT_SECRET"]
-    AUTHORITY = os.environ.get("AUTHORITY", "https://login.microsoftonline.com/common")
-    REDIRECT_PATH = os.environ.get("REDIRECT_PATH", "/auth")
-    
-    # These are standard OIDC scopes
-    SCOPE = os.environ.get("SCOPE", "openid profile email").split()
-
-
-# app.py
-from flask import Flask, session, render_template, abort
-from auth import auth_bp
-from utils.decorators import login_required, require_roles
-from config import DevConfig
-from datetime import timedelta
-
 app = Flask(__name__)
-app.config.from_object(DevConfig)
-app.secret_key = app.config['SECRET_KEY']
+app.secret_key = os.urandom(24)  # Use a secure, fixed key in production
 
-# Security configs
-app.config.update(
-    SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,  # Ensure HTTPS
-    SESSION_COOKIE_SAMESITE='Lax'
-)
-app.permanent_session_lifetime = timedelta(hours=2)
+# MSAL configuration
+CLIENT_ID = "your_client_id"
+CLIENT_SECRET = "your_client_secret"
+AUTHORITY = "https://login.microsoftonline.com/your_tenant_id_or_common"
+REDIRECT_PATH = "/oauth2/callback"
+SCOPE = ["openid", "email", "profile", "User.Read"]
 
-# Register auth blueprint
-app.register_blueprint(auth_bp, url_prefix='')
-
-@app.before_request
-def make_session_permanent():
-    session.permanent = True
-
-@app.route('/')
-@login_required
-def home():
-    user = session['user']
-    return render_template("home.html", user=user)
-
-@app.route('/secure')
-@login_required
-@require_roles(['Admin', 'PrivUser'])
-def secure_area():
-    return "Admins or PrivUsers only."
-
-@app.errorhandler(403)
-def forbidden(e):
-    return "403 Forbidden – Access denied", 403
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
-
-# utils/decorators.py
-from functools import wraps
-from flask import session, redirect, url_for, abort
-
-def login_required(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        if 'user' not in session:
-            return redirect(url_for('auth.login'))
-        return f(*args, **kwargs)
-    return wrapper
-
-def require_roles(required_roles):
-    def decorator(f):
-        @wraps(f)
-        def wrapper(*args, **kwargs):
-            roles = session.get('user', {}).get('roles', [])
-            if not any(r in roles for r in required_roles):
-                return abort(403)
-            return f(*args, **kwargs)
-        return wrapper
-    return decorator
-
-
-# auth.py
-import uuid, msal
-from flask import Blueprint, session, redirect, url_for, request, current_app, abort
-
-auth_bp = Blueprint('auth', __name__)
-
-def _build_msal_app():
+# Build MSAL app
+def _build_msal_app(cache=None):
     return msal.ConfidentialClientApplication(
-        current_app.config['CLIENT_ID'],
-        authority=current_app.config['AUTHORITY'],
-        client_credential=current_app.config['CLIENT_SECRET']
+        CLIENT_ID, authority=AUTHORITY, client_credential=CLIENT_SECRET, token_cache=cache
     )
 
-@auth_bp.route('/login')
-def login():
-    session.clear()
-    state = str(uuid.uuid4())
-    session['state'] = state
-    auth_url = _build_msal_app().get_authorization_request_url(
-        scopes=current_app.config['SCOPE'],
-        state=state,
-        redirect_uri=url_for('auth.callback', _external=True, _scheme='https')
+# Build auth URL
+def _build_auth_url():
+    msal_app = _build_msal_app()
+    return msal_app.get_authorization_request_url(
+        scopes=SCOPE,
+        state=str(uuid.uuid4()),
+        redirect_uri=url_for("authorized", _external=True),
     )
+
+# Login route
+@app.route("/login")
+def login():
+    auth_url = _build_auth_url()
     return redirect(auth_url)
 
-@auth_bp.route(current_app.config.get('REDIRECT_PATH', '/auth'))
-def callback():
-    if request.args.get('state') != session.get('state'):
-        return abort(400, "Invalid state")
-    if 'error' in request.args:
-        return abort(400, request.args.get('error_description', 'Authentication error'))
+# Callback route
+@app.route(REDIRECT_PATH)
+def authorized():
+    if request.args.get("state") is None or "code" not in request.args:
+        return "Authorization failed.", 400
 
-    code = request.args.get('code')
-    if not code:
-        return redirect(url_for('home'))
-
-    result = _build_msal_app().acquire_token_by_authorization_code(
-        code=code,
-        scopes=current_app.config['SCOPE'],
-        redirect_uri=url_for('auth.callback', _external=True, _scheme='https')
+    msal_app = _build_msal_app()
+    result = msal_app.acquire_token_by_authorization_code(
+        request.args["code"],
+        scopes=SCOPE,
+        redirect_uri=url_for("authorized", _external=True),
     )
-    if 'error' in result:
-        return abort(400, result.get('error_description', 'Token acquisition failed'))
 
-    claims = result['id_token_claims']
-    session['user'] = {
-        'name': claims.get('name'),
-        'email': claims.get('preferred_username'),
-        'roles': claims.get('roles', [])
-    }
+    if "id_token_claims" in result:
+        claims = result["id_token_claims"]
 
-    return redirect(url_for('home'))
+        user_name = claims.get("name", "Unknown")
+        user_email = claims.get("preferred_username", "unknown@example.com")
+        user_roles = claims.get("roles", [])
 
-@auth_bp.route('/logout')
+        session["user"] = {
+            "name": user_name,
+            "email": user_email,
+            "roles": user_roles if isinstance(user_roles, list) else [],
+        }
+
+        return redirect(url_for("index"))
+    else:
+        return "Failed to acquire token.", 400
+
+# Logout route
+@app.route("/logout")
 def logout():
     session.clear()
-    return redirect(
-        f"{current_app.config['AUTHORITY']}/oauth2/v2.0/logout"
-        f"?post_logout_redirect_uri={url_for('home', _external=True)}"
+    logout_url = (
+        AUTHORITY + "/oauth2/v2.0/logout"
+        + "?post_logout_redirect_uri=" + url_for("index", _external=True)
     )
+    return redirect(logout_url)
 
+# Role-required decorator
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        def wrapped(*args, **kwargs):
+            user = session.get("user")
+            if not user:
+                return redirect(url_for("login"))
+            if not any(role in user.get("roles", []) for role in roles):
+                return abort(403)
+            return f(*args, **kwargs)
+        return wrapped
+    return decorator
 
+# Before request hook to enforce login globally
+@app.before_request
+def enforce_login():
+    exempt_routes = ["login", "authorized", "static"]
+    if request.endpoint not in exempt_routes and "user" not in session:
+        return redirect(url_for("login"))
 
+# After request hook to set security headers
+@app.after_request
+def set_security_headers(response):
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
+    return response
 
+# Home route
+@app.route("/")
+def index():
+    user = session.get("user")
+    return render_template_string("""
+        <h2>Welcome {{ user.name }}</h2>
+        <p>Email: {{ user.email }}</p>
+        <p>Roles: {{ user.roles }}</p>
+        <a href="{{ url_for('logout') }}">Logout</a><br>
+        <a href="{{ url_for('admin_page') }}">Go to Admin Page</a>
+    """, user=user)
+
+# Admin route
+@app.route("/admin")
+@role_required("Admin", "Root")
+def admin_page():
+    return "Hello, Admin! You have special access."
+
+if __name__ == "__main__":
+    app.run(debug=True)
