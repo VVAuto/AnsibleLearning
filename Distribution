@@ -1,47 +1,22 @@
-import os
-import csv
+function toggleVisibility(selectName, boxId) {
+  const value = document.querySelector(`[name="${selectName}"]`).value;
+  const box = document.getElementById(boxId);
+  box.style.display = (value === 'yes') ? 'block' : 'none';
+}
 
-class CSVProcessor:
-    def __init__(self, csv_dir):
-        self.csv_dir = csv_dir
-        self.master_list = []
-        self.headers = ["test"]
-    
-    def process_csv_files(self, weeks=None):
-        csv_list = self._get_csv_list()
-        for file in csv_list:
-            path = os.path.join(self.csv_dir, file)
-            csv_data = self._read_csv(path)
-            processed_data = self._process_csv_data(csv_data, file)
-            self.master_list.append(processed_data)
-        
-        if weeks:
-            self.add_week_headers(weeks)
-        
-        return self.headers, self.master_list
-    
-    def _get_csv_list(self):
-        return sorted(os.listdir(self.csv_dir), reverse=True)
-    
-    def _read_csv(self, file_path):
-        with open(file_path, 'r', newline='') as file:
-            reader = csv.reader(file)
-            csv_data = list(reader)
-        return csv_data
-    
-    def _process_csv_data(self, csv_data, file_name):
-        # Your CSV processing logic here
-        processed_data = []  # Placeholder for processed data
-        return processed_data
-    
-    def add_week_headers(self, weeks):
-        for week in weeks:
-            self.headers.append(week)
+window.onload = function () {
+  const experienceSelect = document.querySelector('[name="experience"]');
+  const certificationSelect = document.querySelector('[name="certification"]');
 
-# Usage
-csv_dir = os.getcwd() + '/csv'
-csv_processor = CSVProcessor(csv_dir)
-headers, master_list = csv_processor.process_csv_files(weeks=["123W"])
+  if (experienceSelect) {
+    experienceSelect.addEventListener('change', () => toggleVisibility('experience', 'experience-box'));
+  }
 
-print(headers)
-print(master_list)
+  if (certificationSelect) {
+    certificationSelect.addEventListener('change', () => toggleVisibility('certification', 'certification-box'));
+  }
+
+  // Initial state on load
+  toggleVisibility('experience', 'experience-box');
+  toggleVisibility('certification', 'certification-box');
+};
