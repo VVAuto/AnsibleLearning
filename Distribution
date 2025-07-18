@@ -1,22 +1,18 @@
-function toggleVisibility(selectName, boxId) {
-  const value = document.querySelector(`[name="${selectName}"]`).value;
-  const box = document.getElementById(boxId);
-  box.style.display = (value === 'yes') ? 'block' : 'none';
+function toggleVisibilityWithinForm(form, selectName, boxId) {
+  const select = form.querySelector(`[name="${selectName}"]`);
+  const box = form.querySelector(`#${boxId}`);
+  if (select && box) {
+    box.style.display = (select.value === 'yes') ? 'block' : 'none';
+    select.addEventListener('change', () => {
+      box.style.display = (select.value === 'yes') ? 'block' : 'none';
+    });
+  }
 }
 
 window.onload = function () {
-  const experienceSelect = document.querySelector('[name="experience"]');
-  const certificationSelect = document.querySelector('[name="certification"]');
+  const form = document.getElementById('my-protected-form');
+  if (!form) return; // Do nothing if the form isn't present
 
-  if (experienceSelect) {
-    experienceSelect.addEventListener('change', () => toggleVisibility('experience', 'experience-box'));
-  }
-
-  if (certificationSelect) {
-    certificationSelect.addEventListener('change', () => toggleVisibility('certification', 'certification-box'));
-  }
-
-  // Initial state on load
-  toggleVisibility('experience', 'experience-box');
-  toggleVisibility('certification', 'certification-box');
+  toggleVisibilityWithinForm(form, 'experience', 'experience-box');
+  toggleVisibilityWithinForm(form, 'certification', 'certification-box');
 };
